@@ -23,6 +23,7 @@ public class DuckPondServerUploadHandler extends Thread{
         this.socket = sock;
     }
     
+    @Override
     public void run()
     {
         try (
@@ -33,12 +34,11 @@ public class DuckPondServerUploadHandler extends Thread{
         ) {
             String inputLine, outputLine;
             //create object to deal with stuff
-            outputLine = "herp.";
+            outputLine = "derp.";
             out.println(outputLine);
 
             while ((inputLine = in.readLine()) != null) {
                 //do stuff here too
-                outputLine = inputLine;
                 out.println(outputLine);
                 if (outputLine.equals("Bye"))
                     break;

@@ -14,27 +14,33 @@ import java.net.ServerSocket;
  */
 
 public class DuckPondServer {
-    public static final int PORTNUM = 69420;
+    public static final int PORTNUM = 42069;
 
-  public static void main(String[] args) throws IOException {
+  public static void main(String[] args) throws IOException 
+  {
 
-      int portNumber;
+    int portNumber;
       
     if (args.length != 1) {
         portNumber = PORTNUM;
     }
-
-        portNumber = Integer.parseInt(args[0]);
-        boolean listening = true;
+    else portNumber = Integer.parseInt(args[0]);
+    
+    boolean listening = true;
         
-        try (ServerSocket serverSocket = new ServerSocket(portNumber)) { 
-            while (listening) {
-	            new DuckPondServerUploadHandler(serverSocket.accept()).start();
-	        }
-	    } catch (IOException e) {
-            System.err.println("Could not listen on port " + portNumber);
-            System.exit(-1);
-        }
+    try (ServerSocket serverSocket = new ServerSocket(portNumber)) 
+    { 
+        while (listening) 
+        {
+        new DuckPondServerUploadHandler(serverSocket.accept()).start();
+	}
     }
+    catch (IOException e) 
+    {
+        System.err.println("Could not listen on port " + portNumber);
+        System.exit(-1);
+        
+    }
+  }
     
 }
