@@ -61,15 +61,11 @@ public class DuckPondServerUploadHandler extends Thread{
             case 1: //name did not exist
                 if (getNewPin() ==0) //get a pin first, in case they disconnect
                 {
-                    try
+                    if (writeUserAndPin() ==0)
                     {
-                        Files.createDirectory(userdir);
+                        System.out.println("Pin recorded for " + user);
                     }
-                    catch(IOException e)
-                    {
-                        System.err.println("could not create user dir");
-                        return;
-                    }
+                    else System.out.println("Error writing pinfile");
                 }
                 else System.err.println("pin not got!!");
                 break;
@@ -82,12 +78,14 @@ public class DuckPondServerUploadHandler extends Thread{
                         case 1:
                             good = true;
                             System.out.println("Correct PIN entered for " + user);
+                            out.println("ALLSGOOD");
                             break;
                         case -1:
                             System.err.println("CheckPin returned -1, terminating");
                             return;
                         case 0:
                             System.out.println("Incorrect PIN attempted");
+                            out.println("TRYAGAIN");
                             break;
                     }
                 } //repeat until pin is correct
@@ -142,18 +140,24 @@ public class DuckPondServerUploadHandler extends Thread{
             System.err.println("Could not read PIN from client");
             return -1;
         }
-        
-        //write to pin file
+        out.println("RECIEVED");
+        return 0;
+    }
+    
+    private int writeUserAndPin()
+    {
+         //write to pin file
         pinfile = Paths.get(userdir.toString(),pin);
         try {
-            Files.write(pinfile, new byte[0],StandardOpenOption.WRITE);
-        } catch (IOException ex) {
+            Files.createDirectory(userdir);
+            System.out.println("Dir created for: " + userdir.toString());
+            System.out.println("attemting to create: " + pinfile.toString());
+            Files.createFile(pinfile);
+        } 
+        catch (IOException ex) {
         System.err.println("Could not write pinfile");
         return -1;
         }
-        
-        out.println("RECIEVED");
-        System.out.println("Pin recorded for " + user);
         return 0;
     }
     
@@ -175,7 +179,10 @@ public class DuckPondServerUploadHandler extends Thread{
         {
             return 1;
         }
-        else return 0;
+        else 
+        {
+            return 0;
+        }
     }
     
 }
