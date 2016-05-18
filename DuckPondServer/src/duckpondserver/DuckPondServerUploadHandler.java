@@ -14,6 +14,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -29,7 +31,7 @@ public class DuckPondServerUploadHandler extends Thread{
     
     String user;
     String pin;
-    String level;
+    List<String> levellines;
     Path userdir;
     Path pinfile;
     Path levelfile;
@@ -42,6 +44,7 @@ public class DuckPondServerUploadHandler extends Thread{
         super("DuckPondServerUploadHandler");
         this.socket = sock;
         userverified = false;
+        levellines = new ArrayList<String>();
     }
     
     @Override
@@ -101,7 +104,20 @@ public class DuckPondServerUploadHandler extends Thread{
         //user has been verified, wait for file
         if (userverified)
         {
-            out.println("hergity");
+            System.out.println("Waiting for file");
+            switch (readFile()) //reads level from client, stores in level if success 
+            {
+                case -1: //error reading file
+                    break;
+                case 0: //file read correctly
+                    switch (writeFile())
+                    {
+                        case -1: //error writing file
+                            break;
+                        case 0: //file write success!
+                            break;
+                    }
+            }
             System.out.println("Thanks for stopping by " + user);
         }
         else
@@ -202,6 +218,47 @@ public class DuckPondServerUploadHandler extends Thread{
         {
             return 0;
         }
+    }
+    
+    private int readFile()
+    {
+        String temp;
+        levellines.clear();
+        try
+        {
+            temp = in.readLine(); //first filename
+            levelfile = Paths.get(userdir.toString(), temp);
+            System.out.println("Read filename as " + temp);
+            temp = in.readLine();
+            while (!temp.equals("\4")) //last char will be EOT
+            {
+                levellines.add(temp);
+                System.out.println("read a line: " + temp);
+                temp = in.readLine();
+            }
+        }
+        catch (IOException e)
+        {
+            System.err.println("Error reading level from client");
+            return -1;
+        }
+        System.out.println("file read " + levelfile.toString() + " for " + 
+                            Integer.toString(levellines.size()) + " lines.");
+        return 0;
+    }
+    
+    public int writeFile()
+    {
+        try {
+            Files.write(levelfile, levellines);
+        } 
+        catch (IOException ex) {
+        System.err.println("Could not write levelfile");
+        return -1;
+        }
+        System.out.println("Wrote file " + levelfile.toString() + 
+                " with lines: " + Integer.toString(levellines.size()));
+        return 0;
     }
     
 }
