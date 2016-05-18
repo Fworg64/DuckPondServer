@@ -34,11 +34,14 @@ public class DuckPondServerUploadHandler extends Thread{
     Path pinfile;
     Path levelfile;
     
+    boolean userverified;
+    
     
     DuckPondServerUploadHandler(Socket sock)
     {
         super("DuckPondServerUploadHandler");
         this.socket = sock;
+        userverified = false;
     }
     
     @Override
@@ -64,19 +67,20 @@ public class DuckPondServerUploadHandler extends Thread{
                     if (writeUserAndPin() ==0)
                     {
                         System.out.println("Pin recorded for " + user);
+                        userverified = true;
                     }
                     else System.out.println("Error writing pinfile");
                 }
                 else System.err.println("pin not got!!");
                 break;
             case 2: //name did exist
-                boolean good = false;
-                while (!good)
+                userverified = false;
+                while (!userverified)
                 {
                     switch (checkPin())
                     {
                         case 1:
-                            good = true;
+                            userverified = true;
                             System.out.println("Correct PIN entered for " + user);
                             out.println("ALLSGOOD");
                             break;
@@ -92,10 +96,20 @@ public class DuckPondServerUploadHandler extends Thread{
                 break;
             case -1: //could not verify existence or nonexistance
                 System.err.println("Server error, could not verify files");
+                break;
         }
         //user has been verified, wait for file
-        out.println("hergity");
-        System.out.println("Thanks for stopping by " + user);
+        if (userverified)
+        {
+            out.println("hergity");
+            System.out.println("Thanks for stopping by " + user);
+        }
+        else
+        {
+            out.println("GEERRRR");
+            System.out.println("Unable to verify " + user);
+        }
+        
     }
     
     private int readUserName()
@@ -139,6 +153,11 @@ public class DuckPondServerUploadHandler extends Thread{
         {
             System.err.println("Could not read PIN from client");
             return -1;
+        }
+        if (pin.length() != 4)
+        {
+            out.println("INVALIDPIN");
+            return -2;
         }
         out.println("RECIEVED");
         return 0;
