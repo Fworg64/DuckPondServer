@@ -104,14 +104,20 @@ public class DuckPondServerUploadHandler extends Thread{
             System.out.println("Waiting for file");
             switch (readFile()) //reads level from client, stores in level if success 
             {
+                case -2: //invalid filename
+                            System.err.println("Invalid filename");
+                            break;
                 case -1: //error reading file
+                    System.err.println("Error reading file");
                     break;
                 case 0: //file read correctly
                     switch (writeFile())
                     {
                         case -1: //error writing file
+                            System.err.println("Error writing file");
                             break;
                         case 0: //file write success!
+                            System.out.println("File Wrote!");
                             break;
                     }
             }
@@ -179,12 +185,16 @@ public class DuckPondServerUploadHandler extends Thread{
     private int writeUserAndPin()
     {
          //write to pin file
-        pinfile = Paths.get(userdir.toString(),pin);
+        pinfile = Paths.get(userdir.toString(),"ATTRIBUTES", "pin");
         try {
             Files.createDirectory(userdir);
             System.out.println("Dir created for: " + userdir.toString());
+            Files.createDirectory(Paths.get(userdir.toString(), "ATTRIBUTES"));
+            System.out.println("ATTRIBUTES dir created");
             System.out.println("attemting to create: " + pinfile.toString());
             Files.createFile(pinfile);
+            System.out.println("attemting to write pin to " + pinfile.toString());
+            Files.write(pinfile, pin.getBytes());
         } 
         catch (IOException ex) {
         System.err.println("Could not write pinfile");
@@ -202,18 +212,20 @@ public class DuckPondServerUploadHandler extends Thread{
         catch (IOException e)
         {
             System.err.println("Could not read PIN from client");
-            return -1;
+            return -2;
         }
         
-        pinfile = Paths.get(userdir.toString(),pin);
+        pinfile = Paths.get(userdir.toString(),"ATTRIBUTES", "pin");
 
-        if (Files.exists(pinfile)) //pin was correct
+        try //pin was correct
         {
-            return 1;
+            if (pin.equals(new String(Files.readAllBytes(pinfile)))) return 1;//pin was correct
+            else return 0; //incorrect pin
         }
-        else 
+        catch (IOException e)
         {
-            return 0;
+            System.err.println("could not read pinfile @ " + pinfile.toString());
+            return -1;
         }
     }
     
@@ -226,6 +238,10 @@ public class DuckPondServerUploadHandler extends Thread{
             temp = in.readLine(); //first filename
             levelfile = Paths.get(userdir.toString(), temp);
             System.out.println("Read filename as " + temp);
+            if (temp.equalsIgnoreCase("ATTRIBUTES")) {//invalid filename
+                System.out.append("Invalid filename: ATTRIBUTES");
+                return -2;
+            } 
             temp = in.readLine();
             while (!temp.equals("\4")) //last char will be EOT
             {
