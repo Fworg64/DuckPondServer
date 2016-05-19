@@ -14,32 +14,56 @@ import java.net.ServerSocket;
  */
 
 public class DuckPondServer {
-    public static final int PORTNUM = 42069;
+    public static final int UPLOADPORTNUM = 42069;
+    public static final int DOWNLDPORTNUM = 42068;
 
   public static void main(String[] args) throws IOException 
   {
 
-    int portNumber;
+    int uploadPortNumber;
+    int downldPortNumber;
       
     if (args.length != 1) {
-        portNumber = PORTNUM;
+        uploadPortNumber = UPLOADPORTNUM;
     }
-    else portNumber = Integer.parseInt(args[0]);
+    else uploadPortNumber = Integer.parseInt(args[0]);
+    
+    if (args.length != 2) {
+        downldPortNumber = DOWNLDPORTNUM;
+    }
+    else downldPortNumber = Integer.parseInt(args[1]);
     
     boolean listening = true;
+    
+    new Thread( new Runnable() { //create thread to listen for download connections
+        @Override
+        public void run() {
+            try(ServerSocket downldSocket = new ServerSocket(downldPortNumber))
+            {
+                while (true)
+                {
+                    new DuckPondServerDownloadHandler(downldSocket.accept()).start();
+                }
+            }
+            catch (IOException e) 
+            {
+                System.err.println("Could not listen on port " + uploadPortNumber);
+                System.exit(-1);
+            }
+        }
+        }).start();
         
-    try (ServerSocket serverSocket = new ServerSocket(portNumber)) 
+    try (ServerSocket uploadSocket = new ServerSocket(uploadPortNumber))   
     { 
         while (listening) 
         {
-        new DuckPondServerUploadHandler(serverSocket.accept()).start();
+        new DuckPondServerUploadHandler(uploadSocket.accept()).start();
 	}
     }
     catch (IOException e) 
     {
-        System.err.println("Could not listen on port " + portNumber);
+        System.err.println("Could not listen on port " + uploadPortNumber);
         System.exit(-1);
-        
     }
   }
     
