@@ -6,10 +6,17 @@
 package duckpondserver;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  *
@@ -20,11 +27,14 @@ public class DuckPondServerDownloadHandler extends Thread
     private Socket socket = null;
     PrintWriter out;
     BufferedReader in;
+    final static Path leveldir = Paths.get("./SERVERFILES");
+    List<Path> gottenPaths;
     
     DuckPondServerDownloadHandler(Socket sock)
     {
         super("DuckPondServerUploadHandler");
         this.socket = sock;
+        gottenPaths = new ArrayList<Path>();
     }
     
     @Override
@@ -54,8 +64,21 @@ public class DuckPondServerDownloadHandler extends Thread
             case 0: //user would like to cancel
                 System.out.println("User leaving");
                 return;
-            case 1: //return random user folder
-                out.println("RANDOM");
+            case 1: //return random user folders
+                //out.println("RANDOM");
+                gottenPaths = getRandoms();
+                sendPathOptions(gottenPaths);
+                String choice = receiveLine();
+                Path chosenPath;
+                boolean validchoice = false;
+                for (Path p: gottenPaths) if (p.getFileName().toString().equals(choice)) {chosenPath = p; validchoice = true;}
+                if (!validchoice)
+                {
+                    System.err.println("Invalid choice " + choice +" of:");
+                    for (Path p: gottenPaths) System.err.println(p.getFileName().toString());
+                    return;
+                }
+                out.println("Great Choice!");
                 break;
             case 2: //return popular user folders
                 out.println("POPULARS");
@@ -105,5 +128,52 @@ public class DuckPondServerDownloadHandler extends Thread
             System.out.println("Invalid request");
             return -2;
         }
+    }
+    
+    public void sendPathOptions(List<Path> paths)
+    {
+        for (Path p: paths)
+        {
+            out.println(p.getFileName());
+        }
+        out.println("\3"); //send 3 to signal end of list
+    }
+    
+    public String receiveLine()
+    {
+        String temp;
+        try
+        {
+            temp = in.readLine();
+        }
+        catch (IOException e)
+        {
+            System.err.println("Could not read Name from client");
+            return "";
+        }
+        return temp;
+    }
+    
+    public ArrayList<Path> getRandoms()
+    {
+        ArrayList<Path> templist = new ArrayList<Path>();
+        templist.clear();
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(leveldir)) {
+        for (Path path : stream) {
+            if (Files.isDirectory(path))
+            {
+                templist.add(path);
+            }
+        }
+        } catch (IOException e) {
+            System.err.println("Error reading from directory");
+            return templist;
+        }
+        ArrayList<Path> chosenones = new ArrayList<Path>();
+        for(int i=0;i<6;i++){ //do this 6 times
+            int idx = (int)(Math.random()*templist.size()); //rand of all
+            chosenones.add(templist.get(idx));
+        }
+        return chosenones;
     }
 }
