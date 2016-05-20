@@ -29,12 +29,23 @@ public class DuckPondServerDownloadHandler extends Thread
     BufferedReader in;
     final static Path leveldir = Paths.get("./SERVERFILES");
     List<Path> gottenPaths;
+    List<Path> levels;
+    
+    private boolean getType;
+    private boolean getUser;
+    private boolean getLevel;
+    private boolean gotLevel;
     
     DuckPondServerDownloadHandler(Socket sock)
     {
         super("DuckPondServerUploadHandler");
         this.socket = sock;
         gottenPaths = new ArrayList<Path>();
+        
+        getType = false;
+        getUser = false;
+        getLevel = false;
+        gotLevel = false;
     }
     
     @Override
@@ -53,115 +64,118 @@ public class DuckPondServerDownloadHandler extends Thread
             e.printStackTrace();
         }
         
-        switch (getFolderRequest())
+        getType = true;
+        while (!gotLevel)
         {
-            case -1: //could not read request
-                System.err.println("Failed to read Request line from Client");
-                return;
-            case -2: //invalid request
-                System.err.println("Read invalid Request line from Client");
-                return;
-            case 0: //user would like to cancel
-                System.out.println("User leaving");
-                return;
-            case 1: //return random user folders
-                //out.println("RANDOM");
-                gottenPaths = getRandoms();
-                break;
-            case 2: //return popular user folders
-                out.println("POPULARS");
-                //gottenPaths = getPopulars();
-                break;
-            case 3: //reccomended requested
-                out.println("RECOMMENEDED");
-                //gottenPaths = getRecommended();
-                break;
-            case 4: //search requested
-                out.println("SEARCH");
-                //get searchstring
-                //gottenPaths = getSearch(searchstring)
-                break;   
-        }
-        sendPathOptions(gottenPaths);
-        String choice = receiveLine(); //get choice
-        Path chosenPath;
-        chosenPath = Paths.get("BOGUS", "TO", "APPEASE", "COMPILER");
-        boolean validchoice = false;
-        for (Path p: gottenPaths) if (p.getFileName().toString().equals(choice)) {chosenPath = p; validchoice = true;}
-        if (!validchoice)
-        {
-            System.err.println("Invalid choice " + choice +" of:");
-            for (Path p: gottenPaths) System.err.println(p.getFileName().toString());
-            return;
-        }
-        //send filenames of chosen path
-        List<Path> levels;
-        levels = getLevels(chosenPath); //chosen path should be initialized
-        if (levels.isEmpty()) //User has no Levels! or they couldnt be loaded
-        {
-            sendPathOptions(levels); //send it anyway, let client figure it out
-        }
-        else //user had something they'd like to share...
-        {
-            sendPathOptions(levels);
-            choice = receiveLine(); //get choice
-            validchoice = false;
-            for (Path p: levels) if (p.getFileName().toString().equals(choice)) {chosenPath = p; validchoice = true;}
-            if (!validchoice)
+            if (getType)
             {
-                System.err.println("Invalid choice " + choice +" of:");
-                for (Path p: levels) System.err.println(p.getFileName().toString());
-                return;
-            }
-            else 
-            {
-                switch (sendLevel(chosenPath))
+                sendCatagoryOptions();
+                String choice = receiveLine();
+                if (choice.equals("R"))
                 {
-                    case -1: //error reading file
-                        return;
-                    case 0: //file sent
-                        System.out.println("File sent!");
+                    gottenPaths = getRandoms();
+                    getType = false;
+                    getUser = true;
+                }
+                else if (choice.equals("P"))
+                {
+                    //gottenPaths = getPopulars();
+                    //getType = false;
+                    //getUser = true;
+                }
+                else if (choice.equals("C"))
+                {
+                    //gottenPaths = getReccomended();
+                    //getType = false;
+                    //getUser = true;
+                }
+                else if (choice.equals("S"))
+                {
+                    //gottenPaths = search()???;
+                    //getType = false;
+                    //getUser = true;
+                }
+                else if (choice.equals("\4")) //user wants to quit
+                {
+                    System.out.println("User Left");
+                    return;
+                }
+                else //invalid
+                {
+                    System.err.println("Read invalid Request line from Client");
+                    return;
                 }
             }
+            if (getUser)
+            {
+                sendPathOptions(gottenPaths); //send user folder names
+                String choice = receiveLine(); //get choice, blocking
+                if (!choice.equals("\5")) //go forward
+                {
+                    Path chosenPath;
+                    chosenPath = null; //to appease compiler
+                    boolean validchoice = false;
+                    for (Path p: gottenPaths) if (p.getFileName().toString().equals(choice)) {chosenPath = p; validchoice = true;}
+                    if (!validchoice)
+                    {
+                        System.err.println("Invalid choice " + choice +" of:");
+                        for (Path p: gottenPaths) System.err.println(p.getFileName().toString());
+                        return;
+                    }
+                    //send filenames of chosen path
+                    levels = getLevels(chosenPath); //chosen path should be initialized
+                    getLevel = true;
+                    getUser = false;
+                }
+                else //go back
+                {
+                   getType = true;
+                   getUser = false;
+                }
+                
+            }
+            if (getLevel)
+            {
+                sendPathOptions(levels);
+                String choice = receiveLine(); //get choice
+                if (!choice.equals("\5")) //go forward
+                {
+                    Path chosenPath = null;//to appease compiler
+                    boolean validchoice = false; 
+                    for (Path p: levels) if (p.getFileName().toString().equals(choice)) {chosenPath = p; validchoice = true;}
+                    if (!validchoice)
+                    {
+                        System.err.println("Invalid choice " + choice +" of:");
+                        for (Path p: levels) System.err.println(p.getFileName().toString());
+                        return;
+                    }
+                    else 
+                    {
+                        switch (sendLevel(chosenPath))
+                        {
+                            case -1: //error reading file
+                                return;
+                            case 0: //file sent
+                                System.out.println("File sent!");
+                        }
+                    }
+                }
+                else //user wanted to go back
+                {
+                    getUser = true;
+                    getLevel = false;
+                }   
+            }
         }
-        System.out.println("Session terminated");
     }
     
-    public int getFolderRequest()
+    public void sendCatagoryOptions()
     {
-        String fromclient;
-        try
-        {
-            fromclient = in.readLine();
-        }
-        catch (IOException e)
-        {
-            System.err.println("Could not read Request from client");
-            return -1;
-        }
-        if (fromclient.equals("R")) {//random user
-            System.out.println("random requested");
-            return 1;
-        } 
-        else if (fromclient.equals("P")) {//popular
-            System.out.println("popular requested");
-            return 2;
-        } 
-        else if (fromclient.equals("C")) {//ReComended
-            System.out.println("Choice requested");
-            return 3;
-        } 
-        else if (fromclient.equals("S")) {//search for user
-            System.out.println("Search requested");
-            return 4;
-        } 
-        else if (fromclient.equals("Q")) { //gracefull quit requested
-            return 0;
-        }
-        else {//invalid request
-            System.out.println("Invalid request");
-            return -2;
-        }
+        out.println("R");
+        out.println("P");
+        out.println("C");
+        out.println("S");
+        out.println("\3"); //send 3 to signal end of list
     }
     
     public void sendPathOptions(List<Path> paths)
