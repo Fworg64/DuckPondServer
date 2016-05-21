@@ -20,8 +20,8 @@ public class DuckPondServer {
   public static void main(String[] args) throws IOException 
   {
 
-    int uploadPortNumber;
-    int downldPortNumber;
+    final int uploadPortNumber;
+    final int downldPortNumber;
       
     if (args.length != 1) {
         uploadPortNumber = UPLOADPORTNUM;

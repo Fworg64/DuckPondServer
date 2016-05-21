@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -263,7 +264,7 @@ public class DuckPondServerUploadHandler extends Thread{
     public int writeFile()
     {
         try {
-            Files.write(levelfile, levellines);
+            Files.write(levelfile, levellines, Charset.forName("UTF-8"));
         } 
         catch (IOException ex) {
         System.err.println("Could not write levelfile");

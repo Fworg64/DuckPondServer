@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.nio.charset.Charset;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -73,7 +74,9 @@ public class DuckPondServerDownloadHandler extends Thread
                 String choice = receiveLine();
                 if (choice.equals("R"))
                 {
+                    System.out.println("Randoms Requested");
                     gottenPaths = getRandoms();
+                    System.out.println("Randoms got");
                     getType = false;
                     getUser = true;
                 }
@@ -109,6 +112,7 @@ public class DuckPondServerDownloadHandler extends Thread
             if (getUser)
             {
                 sendPathOptions(gottenPaths); //send user folder names
+                System.out.println("Gotten Paths Sent, waiting for selection");
                 String choice = receiveLine(); //get choice, blocking
                 if (!choice.equals("\5")) //go forward
                 {
@@ -193,7 +197,7 @@ public class DuckPondServerDownloadHandler extends Thread
         List<String> levellines = new ArrayList<String>();
         try
         {
-            levellines = Files.readAllLines(p);
+            levellines = Files.readAllLines(p, Charset.forName("UTF-8"));
         }
         catch (IOException e)
         {
@@ -259,10 +263,25 @@ public class DuckPondServerDownloadHandler extends Thread
         }
         
         ArrayList<Path> chosenones = new ArrayList<Path>();
-        for(int i=0;i<6;i++){ //do this 6 times
-            int idx = (int)(Math.random()*templist.size()); //rand of all
-            chosenones.add(templist.get(idx));
+        ArrayList<Integer> ints = new ArrayList<Integer>();
+        
+        if (templist.size() >= 6)
+        {
+            while(ints.size() != 6)
+            {
+                int idx = (int)(Math.random()*templist.size()); //rand of all
+                if (!ints.contains(idx)) ints.add(idx);
+            }
+
+            for(int i=0;i<6;i++){ //do this 6 times
+                chosenones.add(templist.get(ints.get(i)));
+            }
         }
+        else
+        {
+            chosenones = templist;
+        }
+        
         return chosenones;
     }
 }
