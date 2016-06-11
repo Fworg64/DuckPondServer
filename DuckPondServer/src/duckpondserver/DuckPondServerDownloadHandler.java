@@ -72,31 +72,13 @@ public class DuckPondServerDownloadHandler extends Thread
             {
                 sendCatagoryOptions();
                 String choice = receiveLine();
-                if (choice.equals("R"))
+                if (choice.equals("Random"))
                 {
                     System.out.println("Randoms Requested");
                     gottenPaths = getRandoms();
                     System.out.println("Randoms got");
                     getType = false;
                     getUser = true;
-                }
-                else if (choice.equals("P"))
-                {
-                    //gottenPaths = getPopulars();
-                    //getType = false;
-                    //getUser = true;
-                }
-                else if (choice.equals("C"))
-                {
-                    //gottenPaths = getReccomended();
-                    //getType = false;
-                    //getUser = true;
-                }
-                else if (choice.equals("S"))
-                {
-                    //gottenPaths = search()???;
-                    //getType = false;
-                    //getUser = true;
                 }
                 else if (choice.equals("\4")) //user wants to quit
                 {
@@ -131,6 +113,11 @@ public class DuckPondServerDownloadHandler extends Thread
                     getLevel = true;
                     getUser = false;
                 }
+                else if (choice.equals("\4")) //user wants to quit
+                {
+                    System.out.println("User Left");
+                    return;
+                }
                 else //go back
                 {
                    getType = true;
@@ -164,6 +151,11 @@ public class DuckPondServerDownloadHandler extends Thread
                         }
                     }
                 }
+                else if (choice.equals("\4")) //user wants to quit
+                {
+                    System.out.println("User Left");
+                    return;
+                }
                 else //user wanted to go back
                 {
                     getUser = true;
@@ -175,15 +167,14 @@ public class DuckPondServerDownloadHandler extends Thread
     
     public void sendCatagoryOptions()
     {
-        out.println("R");
-        out.println("P");
-        out.println("C");
-        out.println("S");
+        out.println("toplevel");
+        out.println("Random");
         out.println("\3"); //send 3 to signal end of list
     }
     
     public void sendPathOptions(List<Path> paths)
     {
+        out.println("choices");
         for (Path p: paths)
         {
             out.println(p.getFileName());
@@ -193,6 +184,8 @@ public class DuckPondServerDownloadHandler extends Thread
     
     public int sendLevel(Path p)
     {
+        out.println("level");
+        out.println(p.toString());
         //read file into array of string lines
         List<String> levellines = new ArrayList<String>();
         try
@@ -252,7 +245,7 @@ public class DuckPondServerDownloadHandler extends Thread
         
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(leveldir)) {
         for (Path path : stream) {
-            if (Files.isDirectory(path))
+            if (Files.isDirectory(path) && (path.toFile().listFiles().length > 1))
             {
                 templist.add(path);
             }
