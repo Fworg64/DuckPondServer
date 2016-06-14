@@ -14,7 +14,10 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 /**
@@ -36,6 +39,8 @@ public class DuckPondServerUploadHandler extends Thread{
     
     boolean userverified;
     
+    Calendar cal;
+    DateFormat dateFormat;
     
     DuckPondServerUploadHandler(Socket sock)
     {
@@ -43,6 +48,9 @@ public class DuckPondServerUploadHandler extends Thread{
         this.socket = sock;
         userverified = false;
         levellines = new ArrayList<String>();
+        
+        cal = Calendar.getInstance();
+        dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
     }
     
     @Override
@@ -102,25 +110,34 @@ public class DuckPondServerUploadHandler extends Thread{
         //user has been verified, wait for file
         if (userverified)
         {
-            System.out.println("Waiting for file");
-            switch (readFile()) //reads level from client, stores in level if success 
+            boolean stayconnected = true;
+            while (stayconnected)
             {
-                case -2: //invalid filename
-                            System.err.println("Invalid filename");
-                            break;
-                case -1: //error reading file
-                    System.err.println("Error reading file");
-                    break;
-                case 0: //file read correctly
-                    switch (writeFile())
-                    {
-                        case -1: //error writing file
-                            System.err.println("Error writing file");
-                            break;
-                        case 0: //file write success!
-                            System.out.println("File Wrote!");
-                            break;
-                    }
+                System.out.println("Waiting for file");
+                switch (readFile()) //reads level from client, stores in level if success 
+                {
+                    case -3: //user quit
+                        stayconnected = false;
+                        break;
+                    case -2: //invalid filename
+                                System.err.println("Invalid filename, disconnecnting");
+                                stayconnected = false;
+                                break;
+                    case -1: //error reading file
+                        System.err.println("Error reading file, disconencting");
+                        stayconnected = false;
+                        break;
+                    case 0: //file read correctly
+                        switch (writeFile())
+                        {
+                            case -1: //error writing file
+                                System.err.println("Error writing file, diconecting");
+                                return;
+                            case 0: //file write success!
+                                System.out.println("File Wrote!");
+                                break;
+                        }
+                }
             }
             System.out.println("Thanks for stopping by " + user);
         }
@@ -129,7 +146,7 @@ public class DuckPondServerUploadHandler extends Thread{
             out.println("GEERRRR");
             System.out.println("Unable to verify " + user);
         }
-        
+        System.out.println(dateFormat.format(cal.getTime()) +": Session Terminated for: " + user);
     }
     
     private int readUserName()
@@ -151,13 +168,13 @@ public class DuckPondServerUploadHandler extends Thread{
        if (Files.exists(userdir))
        {
            out.println("EXIST");
-           System.out.println("Welcome Back: " + user);
+           System.out.println(dateFormat.format(cal.getTime()) + ": Welcome Back: " + user);
            return 2;
        }
        else if (Files.notExists(userdir))
        {
            out.println("NONEXIST");
-           System.out.println("New Player: " + user);
+           System.out.println(dateFormat.format(cal.getTime())+": New Player: " + user);
            return 1;
        }
        else return -1; 
@@ -237,6 +254,7 @@ public class DuckPondServerUploadHandler extends Thread{
         try
         {
             temp = in.readLine(); //first filename
+            if (temp.equals("\3")) return -3; //user wants to quit
             levelfile = Paths.get(userdir.toString(), temp);
             System.out.println("Read filename as " + temp);
             if (temp.equalsIgnoreCase("ATTRIBUTES")) {//invalid filename
