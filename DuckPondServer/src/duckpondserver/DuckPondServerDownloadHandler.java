@@ -66,7 +66,7 @@ public class DuckPondServerDownloadHandler extends Thread
         }
         
         getType = true;
-        while (!gotLevel)
+        while (true)
         {
             if (getType)
             {
@@ -96,7 +96,7 @@ public class DuckPondServerDownloadHandler extends Thread
                 sendPathOptions(gottenPaths); //send user folder names
                 System.out.println("Gotten Paths Sent, waiting for selection");
                 String choice = receiveLine(); //get choice, blocking
-                if (!choice.equals("\5")) //go forward
+                if (!choice.equals("\5") && !choice.equals("\4")) //go forward
                 {
                     Path chosenPath;
                     chosenPath = null; //to appease compiler
@@ -128,8 +128,9 @@ public class DuckPondServerDownloadHandler extends Thread
             if (getLevel)
             {
                 sendPathOptions(levels);
+                System.out.println("Waiting for level selection");
                 String choice = receiveLine(); //get choice
-                if (!choice.equals("\5")) //go forward
+                if (!choice.equals("\5") && !choice.equals("\4")) //go forward
                 {
                     Path chosenPath = null;//to appease compiler
                     boolean validchoice = false; 
@@ -147,7 +148,8 @@ public class DuckPondServerDownloadHandler extends Thread
                             case -1: //error reading file
                                 return;
                             case 0: //file sent
-                                System.out.println("File sent!");
+                                System.out.println("File sent: " + chosenPath.toString());
+                                gotLevel = true;
                         }
                     }
                 }
@@ -158,9 +160,17 @@ public class DuckPondServerDownloadHandler extends Thread
                 }
                 else //user wanted to go back
                 {
+                    System.out.println("Recived " + choice+", read as back");
                     getUser = true;
                     getLevel = false;
                 }   
+            }
+            if (gotLevel)
+            {
+                //catch the page up that gets sent
+                String choice = receiveLine();
+                getLevel = true;
+                gotLevel=false;
             }
         }
     }
